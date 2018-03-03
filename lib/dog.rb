@@ -64,7 +64,7 @@ class Dog
       SELECT *
       FROM dogs
       WHERE name = ?
-      LIMIT 1D
+      LIMIT 1
     SQL
    self.new_from_db(DB[:conn].execute(sql, name).flatten)
  end
@@ -83,4 +83,3 @@ class Dog
    DB[:conn].execute(sql, self.name, self.breed, self.id)
  end
 end
-
