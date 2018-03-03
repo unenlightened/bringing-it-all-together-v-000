@@ -1,3 +1,5 @@
+require 'pry'
+
 class Dog
   attr_accessor :name, :breed
   attr_reader :id
@@ -25,28 +27,59 @@ class Dog
   end
 
   def save
-   if self.id
-     self.update
-   else
-     sql = <<-SQL
-       INSERT INTO dogs (name, breed)
-      VALUES (?, ?)
-     SQL
-     DB[:conn].execute(sql, self.name, self.breed)
-     @id = DB[:conn].execute("SELECT last_insert_rowid() FROM dogs")[0][0]
+    if self.id
+      self.update
+    else
+      sql = <<-SQL
+        INSERT INTO dogs (name, breed)
+        VALUES (?, ?)
+       SQL
+       DB[:conn].execute(sql, self.name, self.breed)
+       @id = DB[:conn].execute("SELECT last_insert_rowid() FROM dogs")[0][0]
     end
+    self
   end
 
   def self.create(name:, breed:)
-   self.new(name, breed).tap {|song| song.save}
+    self.new(name: name, breed: breed).save
   end
 
-  def self.find_by_id(id)
+  def self.find_or_create_by(name:, breed:)
+      row = DB[:conn].execute("SELECT * FROM dogs WHERE name = ? AND breed = ?", name, breed).flatten
+    if !row.empty?
+      dog = self.new_from_db(row)
+    else
+      dog = self.create(name: name, breed: breed)
+    end
+    dog
+  end
+
+ def self.new_from_db(row)
+   id, name, breed = row
+   self.new(name: name, breed: breed, id: id)
+ end
+
+ def self.find_by_name(name)
    sql = <<-SQL
       SELECT *
-      FROM id
+      FROM dogs
       WHERE name = ?
+      LIMIT 1D
     SQL
-   self.new_from_db(DB[:conn].execute(sql,id).flatten)
+   self.new_from_db(DB[:conn].execute(sql, name).flatten)
+ end
+
+ def self.find_by_id(id)
+   sql = <<-SQL
+      SELECT *
+      FROM dogs
+      WHERE id = ?
+    SQL
+    self.new_from_db(DB[:conn].execute(sql, id.to_s).flatten)
+ end
+
+ def update
+   sql = 'UPDATE dogs SET name = ?, breed = ? WHERE id = ?'
+   DB[:conn].execute(sql, self.name, self.breed, self.id)
  end
 end
